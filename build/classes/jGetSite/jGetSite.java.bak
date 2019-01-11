@@ -1,0 +1,1043 @@
+
+package jGetSite;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
+import javax.swing.*;
+import javax.swing.JFileChooser;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import org.jsoup.nodes.Document;
+import org.jsoup.Connection;
+import org.jsoup.HttpStatusException;
+import org.jsoup.Jsoup;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.OutputType;
+import java.awt.Image;
+import java.awt.Desktop;
+import java.io.IOException;
+import java.io.File;
+import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.Alert;
+import org.openqa.selenium.UnhandledAlertException;
+import java.util.Enumeration;
+import javax.swing.AbstractButton;
+import javax.swing.ButtonGroup;
+import java.util.logging.Logger;
+import java.util.logging.FileHandler;
+import javax.swing.table.TableRowSorter;
+import java.net.URI;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+//<editor-fold desc="Website Class">
+class Website {
+        private String lproto;
+        private String lurl;
+        private String ltitle;
+        private URI luri;
+        private int lID; 
+        private Integer lResponseCode;
+        private String lHTML;
+        private String filename;
+        private Boolean lactive;
+        private File f;
+        private Icon icon;
+        private Image image;
+        
+        public Website (){
+            
+        }
+        void setImageFile (File f){
+            this.f = f;
+        }
+        File getImageFile() {
+            return this.f;
+        }
+        void setIcon(Icon icon){
+            this.icon = icon;
+        }
+        Icon getIcon() {
+            return this.icon;
+        }
+        void setImage(Image image) {
+            this.image = image;
+        }
+        Image getImage(){
+            return this.image;
+        }
+        void setActive(Boolean active) {
+          lactive = active;
+        }
+        Boolean getActive (){
+            return lactive;
+        }
+        void setFilename(String fname) {
+         filename = fname;
+        }
+        String getfilename () {
+            return filename; 
+        }
+        void setHTML(String html){
+            lHTML = html;
+        }
+        String getHTML (){
+            return lHTML;
+        }
+        void seturl(String url){
+           lurl = url; 
+        }
+        String geturl(){
+            return lurl;
+        }
+        void setResponseCode(int code) {
+            lResponseCode = code;
+        }
+        Integer getResponseCode () {
+            return lResponseCode;
+        }
+        void setproto(String proto){
+            lproto = proto;
+        }
+        String getproto(){
+            return lproto;
+        }
+        void setTitle(String title){
+            ltitle = title;
+        }
+        String getTitle(){
+            return ltitle;
+        }
+        URI getURI(){
+            return luri;
+        }
+        void setURI(URI uri){
+            luri = uri;
+        }
+        void setID (int i){
+            lID = i;
+        }
+        Integer getID(){
+            return lID;
+        }
+        String getStringID(){
+            return Integer.toString(lID);
+        }
+        Boolean isInTitle(String searchtext) {
+          return ltitle.toLowerCase().contains(searchtext.toLowerCase());
+           
+            }
+       
+            
+    }
+//</editor-fold>
+//<editor-fold desc="Button Group Decider">
+class GroupButtonUtils {
+    
+    public String getSelectedButtonText(ButtonGroup buttonGroup) {
+    
+        for (Enumeration<AbstractButton> buttons = buttonGroup.getElements(); buttons.hasMoreElements();) {
+            AbstractButton button = buttons.nextElement();
+
+            if (button.isSelected()) {
+                return button.getText();
+            }
+        }
+
+        return null;
+    }
+}
+//</editor-fold>
+//<editor-fold desc="cScreenShot Class Callable">
+class cScreenShot implements Callable<String>{
+    
+    String strSiteUrl;
+    
+    public cScreenShot(String url){
+        strSiteUrl = url;
+    }
+    @Override 
+    public String call() throws Exception{
+    try {    
+        
+        String basefilename = strSiteUrl.replaceAll("[^a-zA-Z0-9]", "_");
+        ChromeOptions options = new ChromeOptions();  
+        options.addArguments("--headless", "--disable-gpu","--ignore-certificate-errors");  
+        WebDriver pDriver;
+        pDriver = new ChromeDriver(options);
+        
+        
+        String fnScreenShot = "." + File.separator + "images" + File.separator + basefilename +  ".png";
+    
+        try {
+                 
+                  pDriver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
+                  pDriver.get(strSiteUrl);
+                  File screenshot = ((TakesScreenshot)pDriver).getScreenshotAs(OutputType.FILE);           
+                  FileUtils.copyFile(screenshot, new File(fnScreenShot));
+                  System.out.println("Site " + pDriver.getTitle() + " screenshot saved to " + fnScreenShot + "\n");
+                  String fnPageHTML = "." + File.separator + "html" + File.separator + basefilename +  ".html";
+                  FileUtils.writeStringToFile(new File(fnPageHTML), pDriver.getTitle(), "utf-8");
+
+        }catch (UnhandledAlertException f) {
+                    Alert alert = pDriver.switchTo().alert();
+                    String alertText = alert.getText();
+                    System.out.println("Alert data: " + alertText);
+                    alert.accept();
+                
+        } catch (RuntimeException g) {
+                    System.out.printf("Catch Runtime on %s\n",strSiteUrl + "\n" + g); 
+                }           
+          catch (IOException e){
+                System.out.printf("Catch IOException %s\n",e);
+                }
+          finally {
+                System.out.print("\nScreenshot Completed\n");
+            }
+                pDriver.quit();
+        
+        } catch (Exception e){
+            System.out.println("Error " + e );
+        }  
+    return null;
+}
+}
+
+//</editor-fold>
+//<editor-fold desc="cGetSites">
+class cGetSites implements Callable<Website>{
+    
+    int count = 0; 
+    Website site = new Website();
+    String siteURL;
+    String basefilename;
+    Document pageSource;
+    Connection.Response response = null; 
+    
+    
+    
+    public cGetSites(String url){    
+        siteURL = url;
+        basefilename = siteURL.replaceAll("[^a-zA-Z0-9]", "_");
+    }
+    
+    @Override 
+    public Website call() throws Exception {
+        try {
+                response = Jsoup.connect(siteURL)    
+                .userAgent("Mozilla/5.0 Chrome/19.0.1042.0 Safari/535.21")
+                .timeout(10000)
+                .execute();
+                 
+                 pageSource = response.parse();
+                    site.seturl(siteURL);
+                    if (!pageSource.title().isEmpty()) {
+                        site.setTitle(pageSource.title());
+                    } else {
+                        site.setTitle("No Page Title Returned");
+                    }
+                    site.setHTML(pageSource.html());
+                    site.setActive(true);
+                    site.setID(site.hashCode());
+                    String fnPageHTML = "." + File.separator + "images" + File.separator + basefilename +  ".html";
+                    FileUtils.writeStringToFile(new File(fnPageHTML), site.getHTML(), "utf-8");
+ 
+            } catch (HttpStatusException e) {
+                site.setActive(false);
+                //System.out.printf("Status exception %s",siteURL);
+              site.seturl(siteURL);
+             
+            } catch (java.lang.IllegalArgumentException a){
+                site.setActive(false);
+                 //System.out.printf("IO Exception %s",siteURL);
+                 site.seturl(siteURL + " (" + a + ")");
+            }
+        catch (IOException error) {
+                site.setActive(false);
+                 //System.out.printf("IO Exception %s",siteURL);
+                 site.seturl(siteURL + " (" + error + ")");
+
+            }  
+       
+        return site;
+    }
+}
+//</editor-fold>
+//<editor-fold desc="Write to Log File">
+class WriteLogEntriesToLogFile {
+        boolean append = true;
+        Logger logger = Logger.getLogger("jgetsite");
+        FileHandler handler; //new FileHandler("default.log", append);
+        
+    public  void main(String[] args) throws Exception {
+        Logger.getLogger("jgetsite");
+        handler = new FileHandler("default.log",append);
+        
+        logger.addHandler(handler);
+        logger.severe("severe message");
+        logger.warning("warning message");
+        logger.info("info message");
+        logger.config("config message");
+        logger.fine("fine message");
+        logger.finer("finer message");
+    }
+   public void logerror(){
+       logger.finest("finest message"); 
+   }
+  
+}
+//</editor-fold>
+
+//<editor-fold desc="Web Title Data Model">
+class WebTitleModel extends DefaultTableModel {
+    //Set up tWebTitles Table       
+    String[] columnNames = {"Address","Web Site Title","ID"};
+    @Override
+    public boolean isCellEditable(int row, int column)
+    {
+      return false;//This causes all cells to be not editable
+    }
+    @Override
+    public void setColumnIdentifiers(Object[] os) {
+        super.setColumnIdentifiers(os); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    public void setColumnNames() {
+       
+    }            
+    @Override
+    public int getColumnCount() {
+          return columnNames.length;
+      }
+
+    @Override
+    public String getColumnName(int col) {
+            return columnNames[col];
+      }
+    
+    }
+//</editor-fold>
+
+public class jGetSite extends javax.swing.JFrame  {
+   
+// Private 
+    private final List<String> urls = new ArrayList<>(); 
+    private final List<Website> sitesgrabbed = new ArrayList<>();
+    private final List<String> sitesmissed = new ArrayList<>();
+   
+    private final WebTitleModel tmodel = new WebTitleModel();
+    private TableRowSorter<WebTitleModel> sorter; 
+    
+    private final JFileChooser jc = new JFileChooser();
+    private final GroupButtonUtils buttongroup = new GroupButtonUtils();
+   
+    private final IView iview = new IView();
+    private final MessageBox messagebox = new MessageBox(this,false);
+    private final int MAX_WORKER_THREAD = 12;
+    private final int MAX_SCREENSHOT_WORKER_THREAD = 10;
+    
+    private OpenFile readFile;
+    private Screenshots ss;
+    private GetSites getSites; 
+  
+    public jGetSite() {
+       
+        initComponents();
+        setLocationRelativeTo(null); //Center form on screen
+        //Setup Table Here
+        
+        formSetup();  
+    }
+
+    
+   
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        butgroupFileType = new javax.swing.ButtonGroup();
+        lblStatusText = new javax.swing.JLabel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        tWebTitles = new javax.swing.JTable();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        txtResultsPad = new javax.swing.JTextArea();
+        jPanel1 = new javax.swing.JPanel();
+        butOpenFile = new javax.swing.JButton();
+        rbHttps = new javax.swing.JRadioButton();
+        rbHttp = new javax.swing.JRadioButton();
+        rbRaw = new javax.swing.JRadioButton();
+        jPanel2 = new javax.swing.JPanel();
+        butGetSites = new javax.swing.JButton();
+        butGetScreenshots = new javax.swing.JButton();
+        butImageView = new javax.swing.JButton();
+        jPanel3 = new javax.swing.JPanel();
+        butClose = new javax.swing.JButton();
+        jPanel4 = new javax.swing.JPanel();
+        txtStatusInformation = new javax.swing.JLabel();
+        lblResults = new javax.swing.JLabel();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("WebSite Digest");
+
+        lblStatusText.setText("Task Progress");
+
+        tWebTitles.setModel(tmodel);
+        tWebTitles.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_OFF);
+        tWebTitles.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tWebTitlesMouseClicked(evt);
+            }
+        });
+        jScrollPane3.setViewportView(tWebTitles);
+
+        txtResultsPad.setColumns(20);
+        txtResultsPad.setRows(5);
+        jScrollPane1.setViewportView(txtResultsPad);
+
+        jPanel1.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "File Type", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Arial", 0, 12))); // NOI18N
+        jPanel1.setName(""); // NOI18N
+
+        butOpenFile.setText("Load Sites from File");
+        butOpenFile.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                butOpenFileActionPerformed(evt);
+            }
+        });
+
+        butgroupFileType.add(rbHttps);
+        rbHttps.setText("HTTPS");
+        rbHttps.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                rbHttpsActionPerformed(evt);
+            }
+        });
+
+        butgroupFileType.add(rbHttp);
+        rbHttp.setText("HTTP");
+
+        butgroupFileType.add(rbRaw);
+        rbRaw.setText("RAW");
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(butOpenFile, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(rbHttps)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(rbHttp)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(rbRaw)
+                        .addGap(0, 0, Short.MAX_VALUE)))
+                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(butOpenFile, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(rbHttps)
+                    .addComponent(rbHttp)
+                    .addComponent(rbRaw))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jPanel2.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Actions", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Arial", 0, 12))); // NOI18N
+
+        butGetSites.setText("Collect & Save Sites");
+        butGetSites.setEnabled(false);
+        butGetSites.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                butGetSitesActionPerformed(evt);
+            }
+        });
+
+        butGetScreenshots.setText("Collect & Save Screenshots");
+        butGetScreenshots.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                butGetScreenshotsActionPerformed(evt);
+            }
+        });
+
+        butImageView.setText("");
+        butImageView.setEnabled(false);
+        butImageView.setToolTipText("");
+        butImageView.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                butImageViewActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
+        jPanel2.setLayout(jPanel2Layout);
+        jPanel2Layout.setHorizontalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(butGetSites, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(butGetScreenshots, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(butImageView, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
+        );
+        jPanel2Layout.setVerticalGroup(
+            jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(butGetSites, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(butGetScreenshots, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(butImageView, javax.swing.GroupLayout.DEFAULT_SIZE, 39, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+
+        jPanel3.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Exit", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Arial", 0, 12))); // NOI18N
+
+        butClose.setText("Close");
+        butClose.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                butCloseActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel3Layout = new javax.swing.GroupLayout(jPanel3);
+        jPanel3.setLayout(jPanel3Layout);
+        jPanel3Layout.setHorizontalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(butClose, javax.swing.GroupLayout.PREFERRED_SIZE, 155, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanel3Layout.setVerticalGroup(
+            jPanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel3Layout.createSequentialGroup()
+                .addComponent(butClose, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
+        );
+
+        jPanel4.setBorder(javax.swing.BorderFactory.createEtchedBorder());
+
+        txtStatusInformation.setText("Status Information");
+
+        javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
+        jPanel4.setLayout(jPanel4Layout);
+        jPanel4Layout.setHorizontalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel4Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(txtStatusInformation, javax.swing.GroupLayout.PREFERRED_SIZE, 491, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(21, Short.MAX_VALUE))
+        );
+        jPanel4Layout.setVerticalGroup(
+            jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addComponent(txtStatusInformation, javax.swing.GroupLayout.DEFAULT_SIZE, 18, Short.MAX_VALUE)
+        );
+
+        lblResults.setForeground(new java.awt.Color(204, 0, 0));
+        lblResults.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblResults.setText("Messages");
+
+        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+        getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jPanel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jScrollPane3, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(lblResults, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(lblStatusText, javax.swing.GroupLayout.PREFERRED_SIZE, 524, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(layout.createSequentialGroup()
+                .addGap(21, 21, 21)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 46, Short.MAX_VALUE)
+                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(40, Short.MAX_VALUE))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblResults)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(lblStatusText)
+                .addGap(12, 12, 12))
+        );
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+ 
+    
+    private void butOpenFileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_butOpenFileActionPerformed
+    
+        String path;  
+    
+        jc.setDialogTitle("Choose URL File");
+        jc.setDialogType(JFileChooser.FILES_ONLY);
+        String lastJFCDirectory = System.getProperty("user.dir", "");
+        jc.setCurrentDirectory(new File(lastJFCDirectory));
+        int rtnValue = jc.showOpenDialog(jGetSite.this);
+        if (rtnValue  == JFileChooser.APPROVE_OPTION){   
+           
+            File fileUrls = jc.getSelectedFile();
+            path = fileUrls.getPath();
+            urls.clear();
+            txtResultsPad.setText("");
+            (readFile = new OpenFile(path)).execute();
+               
+           
+         } 
+        lblResults.setText("Loaded Sites");
+        txtStatusInformation.setText("File Loaded");
+        
+    }//GEN-LAST:event_butOpenFileActionPerformed
+  
+    private void butGetSitesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_butGetSitesActionPerformed
+        
+        long startTime = System.currentTimeMillis();
+        sitesmissed.clear();
+        sitesgrabbed.clear();       
+        new GetSites().execute();
+        
+    
+    }//GEN-LAST:event_butGetSitesActionPerformed
+
+    private void butCloseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_butCloseActionPerformed
+  
+
+    // this will hide and dispose the frame, so that the application quits by
+    // itself if there is nothing else around. 
+    setVisible(false);
+    dispose();
+    // if you have other similar frames around, you should dispose them, too.
+
+    // finally, call this to really exit. 
+    // i/o libraries such as WiiRemoteJ need this. 
+    // also, this is what swing does for JFrame.EXIT_ON_CLOSE
+    System.exit(0);
+    }//GEN-LAST:event_butCloseActionPerformed
+
+    private void tWebTitlesMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tWebTitlesMouseClicked
+
+        if (evt.getClickCount() ==2 && !evt.isConsumed()){
+                 try {  
+                   int row = tWebTitles.getSelectedRow();
+                   int value = Integer.parseInt(tWebTitles.getModel().getValueAt(row, 2).toString());
+                   String selectedURL = tWebTitles.getModel().getValueAt(row, 0).toString();
+                   Desktop.getDesktop().browse(java.net.URI.create(selectedURL));
+                   System.out.printf("Selected %s, hashid: %d\n", selectedURL,value);
+                 } catch (IOException e){
+                    System.out.println(e.getMessage());
+                 }
+                 
+               }
+        
+        
+    }//GEN-LAST:event_tWebTitlesMouseClicked
+  
+    private void butGetScreenshotsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_butGetScreenshotsActionPerformed
+
+        System.setProperty("webdriver.chrome.driver", "/usr/local/bin/Chromedriver");
+        System.out.println(System.getProperty("webdriver.chrome.driver"));
+        setTitle("Getting Screenshots -- Please Wait...");
+        new Screenshots().execute();
+        
+         
+    }//GEN-LAST:event_butGetScreenshotsActionPerformed
+
+    private void rbHttpsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_rbHttpsActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_rbHttpsActionPerformed
+
+    private void butImageViewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_butImageViewActionPerformed
+
+         //iview.displayIcons(sitesgrabbed);
+         //iview.setVisible(true);
+
+    }//GEN-LAST:event_butImageViewActionPerformed
+
+//<editor-fold desc="Custom Methods">
+   
+    private void formSetup() {
+    /**
+     * Reset form values  and also setup Trust Manager that allows
+     * to connect to SSL sites without trusting the cert (I.E using an IP) <- Required
+    */
+    
+        
+        
+        String[] columnNames = {"Address","Web Site Title","ID"};
+        TableColumn column = tWebTitles.getColumnModel().getColumn(0); 
+        column.setHeaderValue(columnNames[0]);
+        column.setPreferredWidth(150);
+        column = tWebTitles.getColumnModel().getColumn(1); 
+        column.setHeaderValue(columnNames[1]);
+        column.setPreferredWidth(300);
+        column = tWebTitles.getColumnModel().getColumn(2);
+        column.setPreferredWidth(100);     
+        rbHttp.setSelected(true);
+        sitesgrabbed.removeAll(urls); 
+        
+        // Create a trust manager that does not validate certificate chains
+        // Allows us to trust all the sites to grab the titles etc..
+        TrustManager[] trustAllCerts = new TrustManager[]{
+        new X509TrustManager() {
+        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+            return null;
+        }
+        public void checkClientTrusted(
+            java.security.cert.X509Certificate[] certs, String authType) {
+        }
+        public void checkServerTrusted(
+            java.security.cert.X509Certificate[] certs, String authType) {
+        }
+            }
+        };
+
+        // Install the all-trusting trust manager
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            HostnameVerifier allHostsValid = (String hostname, SSLSession session) -> true;
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+            } catch (Exception e) {
+            }  
+        
+    }  
+    
+
+//</editor-fold>
+    
+//<editor-fold desc="Swing Workers">
+    private class ImageViewer extends SwingWorker<Void,Void>{
+        
+        DefaultListModel imagemodel = new DefaultListModel();
+        @Override 
+            protected Void doInBackground(){ 
+               return null;
+            }  
+       @Override 
+            protected void done() {
+                 // Open IView.java file 
+                  
+               
+            }
+        
+      
+    }
+private class GetSites extends SwingWorker<Void, String> {
+        
+    String prototype = (buttongroup.getSelectedButtonText(butgroupFileType));
+     
+      long startTime = System.currentTimeMillis();
+      ExecutorService executorService = Executors.newFixedThreadPool(MAX_WORKER_THREAD);
+      String fullURI;
+     
+      public GetSites(){
+            messagebox.updateStatus("Getting Sites....");
+            messagebox.setVisible(true);
+            tmodel.setRowCount(0);
+            
+       }
+      
+      @Override 
+        protected Void doInBackground(){
+            
+        Map<Future,Website> tasks = new LinkedHashMap<>();
+       
+        
+        DefaultListModel m = new DefaultListModel();
+        
+           for (String url: urls){
+               System.out.println ("Url added is " + url);
+            switch (prototype) {
+                case "RAW": fullURI = url;
+                break;
+                case "HTTP": fullURI = "http://" + url;
+                break;
+                case "HTTPS": fullURI = "https://" + url; 
+                break;    
+            }
+                Website s = new Website();
+                Future<Website> fSite = executorService.submit(new cGetSites(fullURI));
+                tasks.put(fSite, s);
+           }
+           tasks.forEach((fSite,s)->{
+                
+           Website content;
+           try {
+            
+           content = (Website)fSite.get(120,TimeUnit.SECONDS);
+          
+           //if (!content.getHTML().isEmpty() || content.getHTML() != null){
+           if (content.getActive() !=false) {
+           sitesgrabbed.add(content);
+           String id =  Integer.toString(content.hashCode());
+           content.setID(content.hashCode());
+           messagebox.updateStatus("Getting Site... " + content.geturl());
+           tmodel.addRow(new String[] {content.geturl(),content.getTitle(),id});
+           } else {
+               sitesmissed.add(content.geturl());
+           }     
+           } catch (InterruptedException | ExecutionException | TimeoutException | NullPointerException e){
+               System.out.println(e);
+               
+           }
+           });
+           executorService.shutdown();
+           return null;
+        }
+
+        @Override 
+            protected void done() {
+               // This is just one thread being done so just update accordingly the process
+               // needs to be handeled by the executor 
+            
+            sorter = new TableRowSorter<>(tmodel);
+            txtResultsPad.setText(null);
+            tWebTitles.removeAll();
+            tWebTitles.setModel(tmodel);
+            tWebTitles.setRowSorter(sorter);
+           
+            messagebox.setVisible(false);
+            setTitle("Completed Processing grabbed " + sitesgrabbed.size() + " sites");
+            long endTime = System.currentTimeMillis();
+            long millis = endTime - startTime; 
+            txtStatusInformation.setText(String.format("Finished Requesting Sites %02d min, %02d seconds and able to get %d out %d site(s)", TimeUnit.MILLISECONDS.toMinutes(millis), TimeUnit.MILLISECONDS.toSeconds(millis) - 
+                   TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)), sitesgrabbed.size(),urls.size()));
+            String boxtext = String.join("\n", sitesmissed);
+            lblResults.setText("Couldn't get the listed sites below");
+            txtResultsPad.setText(boxtext);
+            }
+      
+    }
+    private class OpenFile extends SwingWorker<List<String>,Integer>{
+      String filepath;
+       int count = 0;
+
+            public OpenFile(String path){
+                filepath = path;   
+                butOpenFile.setEnabled(false);
+                
+            }
+            @Override 
+            protected List doInBackground(){ 
+            
+            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+                    String line;
+                    while ((line = reader.readLine()) != null)
+                        {
+                         publish(count); 
+                         urls.add(line);
+                         
+                         count ++;
+                          
+                         
+                        }
+              reader.close();
+            }catch (Exception e)
+                    {
+                     System.out.println(e.toString());
+                     setTitle ("Error Reading File");
+                    }
+                return urls;
+            }
+            
+            @Override
+            protected void process(List<Integer> chunks){
+               
+                
+            }
+            
+            @Override 
+            protected void done() {
+              butOpenFile.setEnabled(true);
+              lblStatusText.setText("File Loaded: " + filepath);
+              butGetSites.setText("Get all " + count + " sites"); //Sets form Getsites button
+              for (String s : urls) {
+                txtResultsPad.setText(txtResultsPad.getText() + s + "\n");
+              }
+              txtStatusInformation.setText("File loaded " + count + " sites");
+             
+            }
+            
+            
+    }   
+
+    private class Screenshots extends SwingWorker<Void,Void>{
+    
+    /* Screeshots is a swingworker to grab screenshots */
+
+    long startTime = System.currentTimeMillis();
+    String fullURI;
+    ExecutorService executorService = Executors.newFixedThreadPool(MAX_SCREENSHOT_WORKER_THREAD);
+    int count = 0;
+
+    @Override 
+    
+    protected Void doInBackground(){
+        
+            txtStatusInformation.setText("Trying to Capture " + Integer.toString(urls.size()) + " site(s)");
+            butGetScreenshots.setEnabled(false);
+            butGetSites.setEnabled(false);
+            long completedCount; 
+            String urlPrefix = (buttongroup.getSelectedButtonText(butgroupFileType));
+            
+       try {
+        for (String url: urls){
+             switch (urlPrefix) {
+                case "RAW": fullURI = url;
+                break;
+                case "HTTP": fullURI = "http://" + url;
+                break;
+                case "HTTPS": fullURI = "https://" + url; 
+                break;    
+            }
+             executorService.submit(new cScreenShot(fullURI));
+            }
+        
+        
+         // This area keeps an eye on the count of sites processed 
+         int activecount;
+          
+         if (executorService instanceof ThreadPoolExecutor) {
+             
+             while (((ThreadPoolExecutor)executorService).getActiveCount() > 0) {
+              activecount = ((ThreadPoolExecutor)executorService).getActiveCount();
+              completedCount = ((ThreadPoolExecutor)executorService).getCompletedTaskCount();
+              txtStatusInformation.setText("Completed " + Long.toString(completedCount) + " sites out of " + urls.size());
+             }
+         }
+         executorService.shutdown();
+         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+         
+       }catch (NullPointerException | InterruptedException e){
+          
+          JOptionPane.showMessageDialog(null, "Screenshots error: " + e);
+          
+          
+         }
+         return null; 
+        }
+    
+    @Override
+    protected void done(){
+            
+            long endTime = System.currentTimeMillis();
+            long millis = endTime - startTime; 
+            txtStatusInformation.setText(String.format("Finished ScreenShots %02d min, %02d sec", TimeUnit.MILLISECONDS.toMinutes(millis), TimeUnit.MILLISECONDS.toSeconds(millis) - 
+                   TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis))));
+            setTitle("Screen Capture Complete");
+            JOptionPane.showMessageDialog(null, "Screen Capture Complete");
+            butGetScreenshots.setEnabled(true);
+            butGetScreenshots.setText("Collect & Save ScreenShots");
+        }
+    } 
+   
+//</editor-fold>    
+   
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(jGetSite.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(jGetSite.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(jGetSite.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(jGetSite.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new jGetSite().setVisible(true);
+            }
+        });
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton butClose;
+    private javax.swing.JButton butGetScreenshots;
+    private javax.swing.JButton butGetSites;
+    private javax.swing.JButton butImageView;
+    private javax.swing.JButton butOpenFile;
+    private javax.swing.ButtonGroup butgroupFileType;
+    private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel2;
+    private javax.swing.JPanel jPanel3;
+    private javax.swing.JPanel jPanel4;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JScrollPane jScrollPane3;
+    private javax.swing.JLabel lblResults;
+    private javax.swing.JLabel lblStatusText;
+    private javax.swing.JRadioButton rbHttp;
+    private javax.swing.JRadioButton rbHttps;
+    private javax.swing.JRadioButton rbRaw;
+    private javax.swing.JTable tWebTitles;
+    private javax.swing.JTextArea txtResultsPad;
+    private javax.swing.JLabel txtStatusInformation;
+    // End of variables declaration//GEN-END:variables
+}
